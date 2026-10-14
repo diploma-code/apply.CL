@@ -94,7 +94,7 @@
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Password</label>
                     <input type="password" id="hod-password" placeholder="Enter password" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" required>
-                    <p class="text-[11px] text-slate-400 mt-1"><code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-700">password</code></p>
+                    <p class="text-[11px] text-slate-400 mt-1">Hint: default password is <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-700">Hod@403</code></p>
                 </div>
                 <div id="hod-login-error" class="text-xs text-rose-600 font-medium hidden">Incorrect password. Please try again.</div>
                 <div class="flex justify-end space-x-3 pt-2">
@@ -178,7 +178,7 @@
                                         <option value="Associate Professor">Associate Professor</option>
                                         <option value="Senior Lecturer" selected>Senior Lecturer</option>
                                         <option value="Lecturer">Lecturer</option>
-                                        <option value="Assistant professor">Assistant professor</option>
+                                        <option value="Workshop Instructor">Workshop Instructor</option>
                                     </select>
                                 </div>
                             </div>
@@ -344,7 +344,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200">
                         <div>
                             <h2 class="text-2xl font-bold text-slate-900">All Faculty Leave Records (HOD Restricted)</h2>
-                            <p class="text-sm text-slate-500">Complete centralized log with Excel Export & Print capabilities.</p>
+                            <p class="text-sm text-slate-500">Complete centralized log with Excel Export, Print, and Delete capabilities.</p>
                         </div>
                         <div class="flex items-center space-x-2 mt-3 sm:mt-0">
                             <button onclick="aiGenerateHodSummary()" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-sm flex items-center">
@@ -647,7 +647,7 @@
         function handleHodLoginSubmit(event) {
             event.preventDefault();
             const pwd = document.getElementById('hod-password').value;
-            if (pwd === 'Hod@403') {
+            if (pwd === 'hod123') {
                 hodAuthenticated = true;
                 closeHodLoginModal();
                 switchRole('admin');
@@ -923,9 +923,31 @@
             }
         }
 
+        function deleteLeaveRecord(id) {
+            if (!hodAuthenticated || currentRole !== 'admin') {
+                alert('Access Denied: Deleting records is restricted to the Common HOD Portal login.');
+                promptHodLogin();
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete this leave record?')) {
+                leaveRequests = leaveRequests.filter(r => r.id !== id);
+                localStorage.setItem('faculty_leave_requests', JSON.stringify(leaveRequests));
+
+                renderHistory();
+                renderAdminRequests();
+                renderAdminRecords();
+            }
+        }
+
         function renderAdminRecords() {
             const tbody = document.getElementById('admin-records-table-body');
             tbody.innerHTML = '';
+
+            if (leaveRequests.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">No faculty leave records found.</td></tr>`;
+                return;
+            }
 
             leaveRequests.forEach(req => {
                 let badgeColor = 'bg-amber-100 text-amber-700';
@@ -941,8 +963,9 @@
                     <td class="p-3.5 text-slate-600">${req.fromDate} (${req.days}d)</td>
                     <td class="p-3.5 text-slate-600 truncate max-w-xs">${req.reason}</td>
                     <td class="p-3.5"><span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] ${badgeColor}">${req.status}</span></td>
-                    <td class="p-3.5">
+                    <td class="p-3.5 space-x-2">
                         <button onclick="openPrintModal('${req.id}')" class="text-brand-600 hover:text-brand-800 font-semibold text-xs"><i class="fa-solid fa-eye"></i> View</button>
+                        <button onclick="deleteLeaveRecord('${req.id}')" class="text-rose-600 hover:text-rose-800 font-semibold text-xs"><i class="fa-solid fa-trash"></i> Delete</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
