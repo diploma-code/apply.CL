@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Leave Management System - Srinivasa Institute of Engineering and Technology</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-full flex flex-col antialiased">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-md">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm sm:text-base font-bold text-slate-900 leading-tight">Srinivasa Institute of Engineering and Technology</h1>
+                    <p class="text-[11px] text-slate-500">Polytechnic • CC:403 | Faculty Leave Portal</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <!-- Role Switcher Trigger -->
+                <div class="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-medium">
+                    <button onclick="switchRole('faculty')" id="btn-role-faculty" class="px-3 py-1.5 rounded-lg transition-all bg-white text-brand-600 shadow-sm">
+                        <i class="fa-solid fa-chalkboard-user mr-1.5"></i>Faculty Dashboard
+                    </button>
+                    <button onclick="promptHodLogin()" id="btn-role-admin" class="px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-user-shield mr-1.5"></i>Common HOD Portal
+                    </button>
+                </div>
+
+                <div class="hidden sm:flex items-center space-x-2 pl-3 border-l border-slate-200">
+                    <div class="bg-brand-50 text-brand-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-brand-100">
+                        <i class="fa-solid fa-id-card mr-1.5"></i> Faculty Portal
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Common HOD Login Modal -->
+    <div id="hod-login-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden p-6 space-y-6">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-slate-900 text-white p-2.5 rounded-xl">
+                        <i class="fa-solid fa-shield-halved text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">Common HOD Authentication</h3>
+                        <p class="text-xs text-slate-500">Enter centralized HOD portal credentials</p>
+                    </div>
+                </div>
+                <button onclick="closeHodLoginModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form onsubmit="handleHodLoginSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">HOD Portal ID</label>
+                    <input type="text" id="hod-username" value="common_hod_admin" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-sm" readonly>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Password</label>
+                    <input type="password" id="hod-password" placeholder="Enter password" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" required>
+                    <p class="text-[11px] text-slate-400 mt-1"><code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-700">password</code></p>
+                </div>
+                <div id="hod-login-error" class="text-xs text-rose-600 font-medium hidden">Incorrect password. Please try again.</div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeHodLoginModal()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-900 text-xs font-semibold text-white shadow-md hover:bg-slate-800">Login to Common HOD Portal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Container Layout -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col justify-between no-print hidden md:flex">
+            <div class="p-4 space-y-1">
+                <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Navigation</p>
+                
+                <button onclick="switchTab('apply')" id="nav-apply" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-brand-600 bg-brand-50 transition-all">
+                    <i class="fa-solid fa-file-circle-plus w-5"></i>
+                    <span>Apply for Leave</span>
+                </button>
+                
+                <button onclick="switchTab('history')" id="nav-history" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all">
+                    <i class="fa-solid fa-clock-rotate-left w-5"></i>
+                    <span>Leave History</span>
+                </button>
+
+                <div id="admin-nav-section" class="hidden pt-4 space-y-1">
+                    <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Common HOD Portal</p>
+                    <button onclick="switchTab('admin-requests')" id="nav-admin-requests" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all">
+                        <i class="fa-solid fa-list-check w-5"></i>
+                        <span>Pending Approvals <span id="pending-badge" class="ml-auto bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold">0</span></span>
+                    </button>
+                    <button onclick="switchTab('admin-records')" id="nav-admin-records" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all">
+                        <i class="fa-solid fa-users-rectangle w-5"></i>
+                        <span>All Faculty Records</span>
+                    </button>
+                    <button onclick="handleHodLogout()" class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 transition-all mt-4 border border-rose-100">
+                        <i class="fa-solid fa-right-from-bracket w-5"></i>
+                        <span>HOD Logout</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- College Info Footer in Sidebar -->
+            <div class="p-4 m-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1 text-center">
+                <p class="text-[11px] font-bold text-slate-700">SIET Polytechnic</p>
+                <p class="text-[10px] text-slate-400">CC Code: 403</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-8">
+            <div class="max-w-5xl mx-auto space-y-6">
+
+                <!-- 1. Apply Leave Section -->
+                <section id="tab-apply" class="space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900">Apply for Casual / Academic Leave</h2>
+                            <p class="text-sm text-slate-500">Srinivasa Institute of Engineering and Technology (CC:403)</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Leave Form Card -->
+                        <form id="leave-form" onsubmit="handleLeaveSubmit(event)" class="lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                            
+                            <!-- Faculty Name & Designation -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Faculty Name</label>
+                                    <input type="text" id="faculty-name-input" placeholder="Enter your full name" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white font-medium" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Designation</label>
+                                    <select id="faculty-designation" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" required>
+                                        <option value="Head of Department">Head of Department (HOD)</option>
+                                        <option value="Professor">Professor</option>
+                                        <option value="Associate Professor">Associate Professor</option>
+                                        <option value="Senior Lecturer" selected>Senior Lecturer</option>
+                                        <option value="Lecturer">Lecturer</option>
+                                        <option value="Assistant professor">Assistant professor</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Leave Type & Department -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Leave Type</label>
+                                    <select id="leave-type" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" required>
+                                        <option value="Casual Leave (CL)">Casual Leave (CL)</option>
+                                        <option value="Medical Leave (ML)">Medical Leave (ML)</option>
+                                        <option value="Earned Leave (EL)">Earned Leave (EL)</option>
+                                        <option value="On Duty (OD) / Conference">On Duty (OD) / Conference</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Department / Branch</label>
+                                    <select id="faculty-dept" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" required>
+                                        <option value="Diploma in Computer Engineering">Diploma in Computer Engineering</option>
+                                        <option value="Diploma in ECE">Diploma in ECE</option>
+                                        <option value="Diploma in EEE">Diploma in EEE</option>
+                                        <option value="Diploma in Mechanical Engineering">Diploma in Mechanical Engineering</option>
+                                        <option value="Diploma in Civil Engineering">Diploma in Civil Engineering</option>
+                                        <option value="Science & Humanities">Science & Humanities</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Dates Selection -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">From Date</label>
+                                    <input type="date" id="from-date" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" required onchange="calculateDays()">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">To Date</label>
+                                    <input type="date" id="to-date" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" required onchange="calculateDays()">
+                                </div>
+                            </div>
+
+                            <!-- Number of Days & Session -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Total Number of Days</label>
+                                    <input type="number" step="0.5" min="0.5" id="total-days" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-sm font-bold text-slate-800" readonly required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Session / Timing</label>
+                                    <select id="session-type" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
+                                        <option value="Full Day(s)">Full Day(s)</option>
+                                        <option value="First Half (FN)">First Half (FN)</option>
+                                        <option value="Second Half (AN)">Second Half (AN)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Reason for Leave -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600">Reason for Leave</label>
+                                    <button type="button" onclick="aiEnhanceReason()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 px-2 py-0.5 rounded-lg flex items-center shadow-sm">
+                                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> AI Polish Reason
+                                    </button>
+                                </div>
+                                <textarea id="leave-reason" rows="3" placeholder="Provide detailed reason for leave..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" required></textarea>
+                            </div>
+
+                            <!-- Alternative / Class Adjustment Details with Branch & Year/Sem -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <label class="text-xs font-bold uppercase tracking-wider text-slate-700 block">Alternative Class / Duty Adjustments</label>
+                                        <p class="text-[11px] text-slate-500">Include Branch, Year/Sem, Subject, Time & Adjusting Faculty</p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <button type="button" onclick="aiSuggestAdjustments()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 shadow-sm flex items-center">
+                                            <i class="fa-solid fa-brain mr-1"></i> AI Suggest
+                                        </button>
+                                        <button type="button" onclick="addAdjustmentRow()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 bg-white px-2.5 py-1 rounded-lg border border-slate-300 shadow-sm">
+                                            <i class="fa-solid fa-plus mr-1"></i> Add Class
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="adjustments-container" class="space-y-3">
+                                    <div class="p-3 bg-white rounded-xl border border-slate-200 space-y-2 adjustment-row shadow-sm">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Branch</label>
+                                                <input type="text" placeholder="e.g. CSE" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Year / Semester</label>
+                                                <input type="text" placeholder="e.g. 3rd Year / 5th Sem" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+                                            <div>
+                                                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Course / Subject</label>
+                                                <input type="text" placeholder="e.g. Data Structures Lab" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Date & Time</label>
+                                                <input type="text" placeholder="e.g. 20 Oct, 10:00 AM" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                                            </div>
+                                            <div class="flex space-x-2">
+                                                <div class="flex-1">
+                                                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Adjusting Faculty</label>
+                                                    <input type="text" placeholder="e.g. Mr. K. Rao" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                                                </div>
+                                                <button type="button" onclick="removeAdjustmentRow(this)" class="px-3 py-2 text-rose-500 hover:text-rose-700 text-xs flex items-center justify-center self-end"><i class="fa-solid fa-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                                <button type="reset" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all">Reset</button>
+                                <button type="submit" class="px-6 py-2.5 rounded-xl bg-brand-600 text-sm font-semibold text-white shadow-md hover:bg-brand-700 transition-all">Submit Application</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- 2. Leave History Section -->
+                <section id="tab-history" class="space-y-6 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900">Leave Application History</h2>
+                            <p class="text-sm text-slate-500">Track status of your submitted leave applications.</p>
+                        </div>
+                        <div class="mt-3 sm:mt-0 flex items-center space-x-2">
+                            <select id="filter-status" onchange="renderHistory()" class="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white font-medium">
+                                <option value="ALL">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="history-container" class="grid grid-cols-1 gap-4"></div>
+                </section>
+
+                <!-- 3. Common HOD Pending Approvals Section -->
+                <section id="tab-admin-requests" class="space-y-6 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900">Common HOD Portal - Pending Approvals</h2>
+                            <p class="text-sm text-slate-500">Review and approve faculty leave requests across all polytechnic departments.</p>
+                        </div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                            <i class="fa-solid fa-shield-halved mr-1.5"></i> Centralized HOD Login Active
+                        </span>
+                    </div>
+
+                    <div id="admin-requests-container" class="grid grid-cols-1 gap-4"></div>
+                </section>
+
+                <!-- 4. Common HOD Faculty Records & Excel Export Section -->
+                <section id="tab-admin-records" class="space-y-6 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900">All Faculty Leave Records (HOD Restricted)</h2>
+                            <p class="text-sm text-slate-500">Complete centralized log with Excel Export & Print capabilities.</p>
+                        </div>
+                        <div class="flex items-center space-x-2 mt-3 sm:mt-0">
+                            <button onclick="aiGenerateHodSummary()" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-sm flex items-center">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> AI Polytechnic Insight
+                            </button>
+                            <button onclick="exportDepartmentReport()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-all shadow-sm">
+                                <i class="fa-solid fa-file-excel mr-1.5"></i> Export to Excel (.csv)
+                            </button>
+                            <button onclick="window.print()" class="px-4 py-2 bg-slate-800 text-white text-xs font-semibold rounded-xl hover:bg-slate-900 transition-all shadow-sm">
+                                <i class="fa-solid fa-print mr-1.5"></i> Print Summary
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AI Insights Box -->
+                    <div id="ai-insight-box" class="bg-gradient-to-r from-indigo-50 to-brand-50 p-5 rounded-2xl border border-indigo-100 hidden space-y-2 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-indigo-900 text-sm flex items-center"><i class="fa-solid fa-robot mr-2 text-indigo-600"></i> AI Polytechnic-Wide Leave Analytics</h4>
+                            <button onclick="document.getElementById('ai-insight-box').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <p id="ai-insight-text" class="text-xs text-indigo-800 leading-relaxed"></p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                                    <tr>
+                                        <th class="p-3.5 font-semibold">Faculty Name</th>
+                                        <th class="p-3.5 font-semibold">Department</th>
+                                        <th class="p-3.5 font-semibold">Leave Type</th>
+                                        <th class="p-3.5 font-semibold">Duration</th>
+                                        <th class="p-3.5 font-semibold">Reason</th>
+                                        <th class="p-3.5 font-semibold">Status</th>
+                                        <th class="p-3.5 font-semibold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-records-table-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Print Sanction Modal -->
+    <div id="print-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 bg-slate-900 text-white flex justify-between items-center no-print">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-file-pdf mr-2"></i> Official Leave Sanction Order</h3>
+                <button onclick="closePrintModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div id="printable-area" class="p-8 space-y-6 overflow-y-auto bg-white text-slate-800 text-sm">
+                <div class="text-center border-b border-slate-200 pb-4 space-y-1">
+                    <h2 class="text-lg font-bold uppercase tracking-wide text-slate-900">SRINIVASA INSTITUTE OF ENGINEERING AND TECHNOLOGY</h2>
+                    <p class="text-xs font-semibold text-slate-600">Polytechnic • CC:403</p>
+                    <p class="text-xs font-semibold text-brand-600 pt-1">OFFICIAL LEAVE SANCTION CERTIFICATE</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div><span class="font-semibold text-slate-500">Application ID:</span> <span id="p-id" class="font-bold text-slate-800">#LEV-1024</span></div>
+                    <div><span class="font-semibold text-slate-500">Applied Date:</span> <span id="p-date" class="font-bold text-slate-800">14 Oct 2026</span></div>
+                    <div><span class="font-semibold text-slate-500">Faculty Name:</span> <span id="p-name" class="font-bold text-slate-800">Mr. John Doe</span></div>
+                    <div><span class="font-semibold text-slate-500">Department:</span> <span id="p-dept" class="font-bold text-slate-800">Computer Engineering</span></div>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div class="grid grid-cols-2 gap-4 border-b border-slate-100 pb-2">
+                        <div><span class="font-semibold text-slate-500">Leave Type:</span> <span id="p-type" class="font-bold text-slate-800">Casual Leave (CL)</span></div>
+                        <div><span class="font-semibold text-slate-500">Total Days:</span> <span id="p-days" class="font-bold text-slate-800">2 Days</span></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 border-b border-slate-100 pb-2">
+                        <div><span class="font-semibold text-slate-500">From Date:</span> <span id="p-from" class="font-bold text-slate-800">2026-10-20</span></div>
+                        <div><span class="font-semibold text-slate-500">To Date:</span> <span id="p-to" class="font-bold text-slate-800">2026-10-21</span></div>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-500 block mb-1">Reason:</span>
+                        <p id="p-reason" class="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-slate-700">Attending official training program.</p>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-500 block mb-1">Class Adjustments (Branch & Year/Sem):</span>
+                        <div id="p-adjustments" class="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-slate-700 space-y-1"></div>
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-slate-200 flex justify-between items-end text-xs">
+                    <div>
+                        <p class="font-semibold text-slate-500">Status:</p>
+                        <span id="p-status-badge" class="inline-block mt-1 px-3 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800">APPROVED</span>
+                    </div>
+                    <div class="text-right space-y-8">
+                        <div class="border-b border-slate-400 w-45 pb-1">
+                            <p class="font-bold text-slate-800">Common Principal / HOD</p>
+                        </div>
+                        <p class="font-semibold text-slate-500">SIET - Polytechnic (CC:403)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3 no-print">
+                <button onclick="closePrintModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-100">Close</button>
+                <button onclick="window.print()" class="px-5 py-2 rounded-xl bg-brand-600 text-xs font-semibold text-white shadow-md hover:bg-brand-700"><i class="fa-solid fa-print mr-1.5"></i> Print / Save PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        let currentRole = 'faculty';
+        let currentTab = 'apply';
+        let hodAuthenticated = false;
+
+        const defaultRequests = [
+            {
+                id: 'LEV-9021',
+                facultyName: 'Mr. K. Ramesh',
+                designation: 'Senior Lecturer',
+                dept: 'Diploma in Computer Engineering',
+                type: 'Casual Leave (CL)',
+                fromDate: '2026-10-05',
+                toDate: '2026-10-06',
+                days: 2,
+                session: 'Full Day(s)',
+                reason: 'Attending personal family commitment.',
+                adjustments: [{branch: 'CSE', yearSem: '3rd Year / 5th Sem', course: 'Data Structures', time: 'Oct 5, 10:00 AM', faculty: 'Mr. V. Suresh'}],
+                status: 'Approved',
+                appliedDate: '2026-10-01'
+            }
+        ];
+
+        let leaveRequests = JSON.parse(localStorage.getItem('faculty_leave_requests')) || defaultRequests;
+
+        async function callGeminiAPI(systemPrompt, userQuery) {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        return candidate.content.parts[0].text;
+                    }
+                } catch (err) {
+                    await new Promise(res => setTimeout(res, Math.pow(2, attempt) * 1000));
+                }
+            }
+            throw new Error("Failed to generate response from Gemini API.");
+        }
+
+        async function aiEnhanceReason() {
+            const reasonArea = document.getElementById('leave-reason');
+            const currentText = reasonArea.value.trim();
+            if (!currentText) {
+                alert('Please type a brief phrase first so the AI can polish it.');
+                return;
+            }
+            const btn = event.currentTarget;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Polishing...`;
+
+            try {
+                const systemPrompt = "You are an academic secretary. Rewrite the given brief leave reason into a formal, professional faculty leave application reason in 1-2 concise sentences.";
+                const polished = await callGeminiAPI(systemPrompt, `Rewrite this leave reason: "${currentText}"`);
+                reasonArea.value = polished.trim();
+            } catch (err) {
+                alert('Could not reach Gemini AI.');
+            } finally {
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        async function aiSuggestAdjustments() {
+            const subjInput = prompt("Enter the Course / Subject name for class adjustment:");
+            if (!subjInput) return;
+
+            const btn = event.currentTarget;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> AI Thinking...`;
+
+            try {
+                const systemPrompt = "You are a polytechnic scheduling assistant. Suggest a realistic covering faculty name and branch/year for covering a class. Return format: Branch | Year/Sem | Faculty Name";
+                const suggestion = await callGeminiAPI(systemPrompt, `Suggest a covering faculty for subject: ${subjInput}`);
+                
+                const parts = suggestion.split('|').map(s => s.trim());
+                const container = document.getElementById('adjustments-container');
+                const row = document.createElement('div');
+                row.className = "p-3 bg-white rounded-xl border border-slate-200 space-y-2 adjustment-row shadow-sm";
+                row.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Branch</label>
+                            <input type="text" value="${parts[0] || 'CSE'}" placeholder="Branch" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Year / Semester</label>
+                            <input type="text" value="${parts[1] || '3rd Year / 5th Sem'}" placeholder="Year / Sem" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Course / Subject</label>
+                            <input type="text" value="${subjInput}" placeholder="Course" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Date & Time</label>
+                            <input type="text" value="Next Working Day" placeholder="Time" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                        </div>
+                        <div class="flex space-x-2">
+                            <div class="flex-1">
+                                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Adjusting Faculty</label>
+                                <input type="text" value="${parts[2] || 'Mr. V. Suresh'}" placeholder="Faculty" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                            </div>
+                            <button type="button" onclick="removeAdjustmentRow(this)" class="px-3 py-2 text-rose-500 hover:text-rose-700 text-xs flex items-center justify-center self-end"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(row);
+            } catch (err) {
+                alert('Could not generate AI adjustment suggestion.');
+            } finally {
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        async function aiGenerateHodSummary() {
+            const box = document.getElementById('ai-insight-box');
+            const textBox = document.getElementById('ai-insight-text');
+            box.classList.remove('hidden');
+            textBox.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Generating AI leave analytics...`;
+
+            try {
+                const totalReqs = leaveRequests.length;
+                const pendingCount = leaveRequests.filter(r => r.status === 'Pending').length;
+                const approvedCount = leaveRequests.filter(r => r.status === 'Approved').length;
+
+                const systemPrompt = "You are a polytechnic principal analyzing institutional leave patterns. Provide a concise 2-sentence analytical summary.";
+                const analysis = await callGeminiAPI(systemPrompt, `Total applications: ${totalReqs}, Pending: ${pendingCount}, Approved: ${approvedCount}. Institution: Srinivasa Institute of Engineering and Technology - CC:403.`);
+                textBox.innerText = analysis;
+            } catch (err) {
+                textBox.innerText = "Unable to fetch AI analytics at the moment.";
+            }
+        }
+
+        window.onload = function() {
+            renderHistory();
+            renderAdminRequests();
+            renderAdminRecords();
+        };
+
+        function switchRole(role) {
+            if (role === 'admin' && !hodAuthenticated) {
+                promptHodLogin();
+                return;
+            }
+            currentRole = role;
+            const btnFaculty = document.getElementById('btn-role-faculty');
+            const btnAdmin = document.getElementById('btn-role-admin');
+            const adminNav = document.getElementById('admin-nav-section');
+
+            if (role === 'admin') {
+                btnAdmin.className = "px-3 py-1.5 rounded-lg transition-all bg-white text-brand-600 shadow-sm";
+                btnFaculty.className = "px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900";
+                adminNav.classList.remove('hidden');
+                switchTab('admin-requests');
+            } else {
+                btnFaculty.className = "px-3 py-1.5 rounded-lg transition-all bg-white text-brand-600 shadow-sm";
+                btnAdmin.className = "px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900";
+                adminNav.classList.add('hidden');
+                switchTab('apply');
+            }
+        }
+
+        function promptHodLogin() {
+            if (hodAuthenticated) {
+                switchRole('admin');
+                return;
+            }
+            document.getElementById('hod-password').value = '';
+            document.getElementById('hod-login-error').classList.add('hidden');
+            document.getElementById('hod-login-modal').classList.remove('hidden');
+        }
+
+        function closeHodLoginModal() {
+            document.getElementById('hod-login-modal').classList.add('hidden');
+        }
+
+        function handleHodLoginSubmit(event) {
+            event.preventDefault();
+            const pwd = document.getElementById('hod-password').value;
+            if (pwd === 'Hod@403') {
+                hodAuthenticated = true;
+                closeHodLoginModal();
+                switchRole('admin');
+            } else {
+                document.getElementById('hod-login-error').classList.remove('hidden');
+            }
+        }
+
+        function handleHodLogout() {
+            hodAuthenticated = false;
+            switchRole('faculty');
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            const tabs = ['apply', 'history', 'admin-requests', 'admin-records'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                if (el) el.classList.add('hidden');
+                const nav = document.getElementById(`nav-${t}`);
+                if (nav) {
+                    nav.className = "w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all";
+                }
+            });
+
+            const activeEl = document.getElementById(`tab-${tabId}`);
+            if (activeEl) activeEl.classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.className = "w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-brand-600 bg-brand-50 transition-all";
+            }
+        }
+
+        function addAdjustmentRow() {
+            const container = document.getElementById('adjustments-container');
+            const row = document.createElement('div');
+            row.className = "p-3 bg-white rounded-xl border border-slate-200 space-y-2 adjustment-row shadow-sm";
+            row.innerHTML = `
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Branch</label>
+                        <input type="text" placeholder="e.g. CSE" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Year / Semester</label>
+                        <input type="text" placeholder="e.g. 3rd Year / 5th Sem" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Course / Subject</label>
+                        <input type="text" placeholder="Course" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Date & Time</label>
+                        <input type="text" placeholder="Time" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                    </div>
+                    <div class="flex space-x-2">
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Adjusting Faculty</label>
+                            <input type="text" placeholder="Faculty" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white" required>
+                        </div>
+                        <button type="button" onclick="removeAdjustmentRow(this)" class="px-3 py-2 text-rose-500 hover:text-rose-700 text-xs flex items-center justify-center self-end"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeAdjustmentRow(btn) {
+            const row = btn.closest('.adjustment-row');
+            if (document.querySelectorAll('.adjustment-row').length > 1) {
+                row.remove();
+            } else {
+                alert('At least one adjustment entry is required.');
+            }
+        }
+
+        function calculateDays() {
+            const from = document.getElementById('from-date').value;
+            const to = document.getElementById('to-date').value;
+            if (from && to) {
+                const start = new Date(from);
+                const end = new Date(to);
+                const diffTime = end - start;
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                if (diffDays > 0) {
+                    document.getElementById('total-days').value = diffDays;
+                } else {
+                    document.getElementById('total-days').value = 1;
+                }
+            }
+        }
+
+        function handleLeaveSubmit(event) {
+            event.preventDefault();
+            const facultyName = document.getElementById('faculty-name-input').value;
+            const designation = document.getElementById('faculty-designation').value;
+            const type = document.getElementById('leave-type').value;
+            const dept = document.getElementById('faculty-dept').value;
+            const fromDate = document.getElementById('from-date').value;
+            const toDate = document.getElementById('to-date').value;
+            const days = parseFloat(document.getElementById('total-days').value) || 1;
+            const session = document.getElementById('session-type').value;
+            const reason = document.getElementById('leave-reason').value;
+
+            const adjustments = [];
+            document.querySelectorAll('.adjustment-row').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                adjustments.push({
+                    branch: inputs[0].value,
+                    yearSem: inputs[1].value,
+                    course: inputs[2].value,
+                    time: inputs[3].value,
+                    faculty: inputs[4].value
+                });
+            });
+
+            const newReq = {
+                id: 'LEV-' + Math.floor(1000 + Math.random() * 9000),
+                facultyName: facultyName,
+                designation: designation,
+                dept: dept,
+                type: type,
+                fromDate: fromDate,
+                toDate: toDate,
+                days: days,
+                session: session,
+                reason: reason,
+                adjustments: adjustments,
+                status: 'Pending',
+                appliedDate: new Date().toISOString().split('T')[0]
+            };
+
+            leaveRequests.unshift(newReq);
+            localStorage.setItem('faculty_leave_requests', JSON.stringify(leaveRequests));
+
+            document.getElementById('leave-form').reset();
+            renderHistory();
+            renderAdminRequests();
+            renderAdminRecords();
+
+            switchTab('history');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            const filter = document.getElementById('filter-status').value;
+            container.innerHTML = '';
+
+            const filtered = leaveRequests.filter(r => r.status === filter || filter === 'ALL');
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-3">
+                        <i class="fa-solid fa-folder-open text-4xl text-slate-300"></i>
+                        <p class="text-sm font-semibold text-slate-600">No leave applications found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(req => {
+                let badgeColor = 'bg-amber-100 text-amber-700 border-amber-200';
+                if (req.status === 'Approved') badgeColor = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                if (req.status === 'Rejected') badgeColor = 'bg-rose-100 text-rose-700 border-rose-200';
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4";
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div class="flex items-center space-x-3">
+                            <span class="font-bold text-slate-900 text-sm">${req.id}</span>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full font-bold border ${badgeColor}">${req.status}</span>
+                            <span class="text-xs text-slate-400">Applied on ${req.appliedDate}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            ${req.status === 'Approved' ? `<button onclick="openPrintModal('${req.id}')" class="px-3 py-1.5 bg-brand-50 text-brand-600 text-xs font-semibold rounded-xl hover:bg-brand-100"><i class="fa-solid fa-print mr-1"></i> View Order</button>` : ''}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                        <div>
+                            <p class="text-slate-400 font-medium">Leave Type</p>
+                            <p class="font-bold text-slate-800 mt-0.5">${req.type}</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 font-medium">Duration</p>
+                            <p class="font-bold text-slate-800 mt-0.5">${req.fromDate} to ${req.toDate} (${req.days} days)</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 font-medium">Session</p>
+                            <p class="font-bold text-slate-800 mt-0.5">${req.session}</p>
+                        </div>
+                    </div>
+                    <div class="text-xs bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                        <p class="font-semibold text-slate-600">Reason: <span class="font-normal text-slate-700">${req.reason}</span></p>
+                        <p class="font-semibold text-slate-600">Adjustments: <span class="font-normal text-slate-700">${req.adjustments.map(a => `[${a.branch} -${a.yearSem}] ${a.course} (${a.faculty})`).join('; ')}</span></p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderAdminRequests() {
+            const container = document.getElementById('admin-requests-container');
+            const pending = leaveRequests.filter(r => r.status === 'Pending');
+            document.getElementById('pending-badge').innerText = pending.length;
+            container.innerHTML = '';
+
+            if (pending.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-3">
+                        <i class="fa-solid fa-circle-check text-4xl text-emerald-500"></i>
+                        <p class="text-sm font-semibold text-slate-600">No pending leave requests to approve.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            pending.forEach(req => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4";
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-indigo-50 text-brand-600 p-2.5 rounded-full"><i class="fa-solid fa-user-tie"></i></div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-sm">${req.facultyName} <span class="text-xs font-normal text-slate-500">(${req.designation})</span></h4>
+                                <p class="text-[11px] text-slate-500">${req.dept} • App ID: ${req.id}</p>
+                            </div>
+                        </div>
+                        <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700 border border-amber-200">Pending Review</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                        <div>
+                            <p class="text-slate-400 font-medium">Leave Type</p>
+                            <p class="font-bold text-slate-800 mt-0.5">${req.type}</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 font-medium">Dates</p>
+                            <p class="font-bold text-slate-800 mt-0.5">${req.fromDate} to ${req.toDate} (${req.days} days)</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 font-medium">Applied On</p>
+                            <p class="font-bold text-slate-800 mt-0.5">${req.appliedDate}</p>
+                        </div>
+                    </div>
+                    <div class="text-xs bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                        <p class="font-semibold text-slate-600">Reason: <span class="font-normal text-slate-700">${req.reason}</span></p>
+                        <p class="font-semibold text-slate-600">Class Adjustments (Branch & Year/Sem):</p>
+                        <ul class="list-disc list-inside text-slate-700">
+                            ${req.adjustments.map(a => `<li><b>[${a.branch} - ${a.yearSem}]</b>${a.course} on ${a.time} adjusted with <i>${a.faculty}</i></li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="flex items-center justify-end space-x-3 pt-2">
+                        <button onclick="updateLeaveStatus('${req.id}', 'Rejected')" class="px-4 py-2 bg-rose-50 text-rose-600 text-xs font-semibold rounded-xl hover:bg-rose-100"><i class="fa-solid fa-xmark mr-1"></i> Reject</button>
+                        <button onclick="updateLeaveStatus('${req.id}', 'Approved')" class="px-5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 shadow-sm"><i class="fa-solid fa-check mr-1"></i> Approve Leave</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateLeaveStatus(id, newStatus) {
+            const req = leaveRequests.find(r => r.id === id);
+            if (req) {
+                req.status = newStatus;
+                localStorage.setItem('faculty_leave_requests', JSON.stringify(leaveRequests));
+
+                renderHistory();
+                renderAdminRequests();
+                renderAdminRecords();
+            }
+        }
+
+        function renderAdminRecords() {
+            const tbody = document.getElementById('admin-records-table-body');
+            tbody.innerHTML = '';
+
+            leaveRequests.forEach(req => {
+                let badgeColor = 'bg-amber-100 text-amber-700';
+                if (req.status === 'Approved') badgeColor = 'bg-emerald-100 text-emerald-700';
+                if (req.status === 'Rejected') badgeColor = 'bg-rose-100 text-rose-700';
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-3.5 font-bold text-slate-800">${req.facultyName} <span class="block font-normal text-[11px] text-slate-500">${req.designation}</span></td>
+                    <td class="p-3.5 text-slate-600">${req.dept}</td>
+                    <td class="p-3.5 text-slate-600">${req.type}</td>
+                    <td class="p-3.5 text-slate-600">${req.fromDate} (${req.days}d)</td>
+                    <td class="p-3.5 text-slate-600 truncate max-w-xs">${req.reason}</td>
+                    <td class="p-3.5"><span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] ${badgeColor}">${req.status}</span></td>
+                    <td class="p-3.5">
+                        <button onclick="openPrintModal('${req.id}')" class="text-brand-600 hover:text-brand-800 font-semibold text-xs"><i class="fa-solid fa-eye"></i> View</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openPrintModal(id) {
+            const req = leaveRequests.find(r => r.id === id);
+            if (!req) return;
+
+            document.getElementById('p-id').innerText = req.id;
+            document.getElementById('p-date').innerText = req.appliedDate;
+            document.getElementById('p-name').innerText = req.facultyName;
+            document.getElementById('p-dept').innerText = req.dept;
+            document.getElementById('p-type').innerText = req.type;
+            document.getElementById('p-days').innerText = `${req.days} Day(s) (${req.session})`;
+            document.getElementById('p-from').innerText = req.fromDate;
+            document.getElementById('p-to').innerText = req.toDate;
+            document.getElementById('p-reason').innerText = req.reason;
+
+            const adjContainer = document.getElementById('p-adjustments');
+            adjContainer.innerHTML = req.adjustments.map(a => `<div>• [<b>Branch:</b> ${a.branch} | <b>Year/Sem:</b> ${a.yearSem}] ${a.course} on ${a.time} adjusted with <b>${a.faculty}</b></div>`).join('');
+
+            document.getElementById('print-modal').classList.remove('hidden');
+        }
+
+        function closePrintModal() {
+            document.getElementById('print-modal').classList.add('hidden');
+        }
+
+        function exportDepartmentReport() {
+            if (!hodAuthenticated || currentRole !== 'admin') {
+                alert('Access Denied: Excel Export is restricted to the Common HOD Portal login.');
+                promptHodLogin();
+                return;
+            }
+
+            let csv = 'Application ID,Faculty Name,Designation,Department,Leave Type,From Date,To Date,Days,Status,Reason\n';
+            leaveRequests.forEach(r => {
+                csv += `"${r.id}","${r.facultyName}","${r.designation}","${r.dept}","${r.type}","${r.fromDate}","${r.toDate}",${r.days},"${r.status}","${r.reason}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'siet_polytechnic_leave_records.csv');
+            a.click();
+        }
+    </script>
+</body>
+</html>
